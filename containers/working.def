@@ -57,29 +57,45 @@ Stage: build
         echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen
         locale-gen && update-locale LANG=en_US.UTF-8
 
-    apt-get install -y --no-install-recommends r-base r-base-dev
+
+    # Miniforge, also installs Python, Mamba, Conda
+    # stolen from various SO answers, representative one at 77441093
+    readonly mamba_installer="Mambaforge-$(uname)-$(uname -m).sh"
+    readonly mamba_version="25.1.1-2"
+    readonly mamba_prefix="/opt/mamba"
+    wget "https://github.com/conda-forge/miniforge/releases/download/${mamba_version}/${mamba_installer}"
+    bash "${mamba_installer}" -b -p "${mamba_prefix}"
+    rm "${mamba_installer}"
+    export PATH="${mamba_prefix}/bin:$PATH"
+
+    mamba create --name mambaR --file conda_packages.txt
+    conda config --add channels bioconda
+    mamba install -n mambaR -c bioconda bioconductor-onlinefdr
+    mamba activate mambaR
+
+#    apt-get install -y --no-install-recommends r-base r-base-dev
 
     # This increases the build time substantially.
     # explicit use or /usr/lib/R/library - default is
     # /usr/local/lib/R/site-library and either testthat or devtools insists on
     # checking .Library instead of .libPaths()
-    R --no-echo -e 'install.packages("remotes", "/usr/lib/R/library")'
-    R --no-echo -e 'install.packages("pkgdown", "/usr/lib/R/library")'
-    R --no-echo -e 'install.packages("devtools", "/usr/lib/R/library")'
-    R --no-echo -e 'install.packages("here", "/usr/lib/R/library")'
-    R --no-echo -e 'install.packages("dtplyr", "/usr/lib/R/library")'
-    R --no-echo -e 'install.packages("conflicted", "/usr/lib/R/library")'
-    R --no-echo -e 'install.packages("bench", "/usr/lib/R/library")'
-
-    # Build from the original GH repo here, then once in a working container,
-    # rebuild from a local clone of a fork using remotes::install_local()
-    R --no-echo -e 'remotes::install_github("bowers-illinois-edu/manytestsr", upgrade="always")'
-
-    # packages for test_performance_sims
-    R --no-echo -e 'install.packages("parallelly", "/usr/lib/R/library")'
-    R --no-echo -e 'install.packages("future", "/usr/lib/R/library")'
-    R --no-echo -e 'install.packages("future.apply", "/usr/lib/R/library")'
-
+#     R --no-echo -e 'install.packages("remotes", "/usr/lib/R/library")'
+#     R --no-echo -e 'install.packages("pkgdown", "/usr/lib/R/library")'
+#     R --no-echo -e 'install.packages("devtools", "/usr/lib/R/library")'
+#     R --no-echo -e 'install.packages("here", "/usr/lib/R/library")'
+#     R --no-echo -e 'install.packages("dtplyr", "/usr/lib/R/library")'
+#     R --no-echo -e 'install.packages("conflicted", "/usr/lib/R/library")'
+#     R --no-echo -e 'install.packages("bench", "/usr/lib/R/library")'
+#
+#     # Build from the original GH repo here, then once in a working container,
+#     # rebuild from a local clone of a fork using remotes::install_local()
+#     R --no-echo -e 'remotes::install_github("bowers-illinois-edu/manytestsr", upgrade="always")'
+#
+#     # packages for test_performance_sims
+#     R --no-echo -e 'install.packages("parallelly", "/usr/lib/R/library")'
+#     R --no-echo -e 'install.packages("future", "/usr/lib/R/library")'
+#     R --no-echo -e 'install.packages("future.apply", "/usr/lib/R/library")'
+#
     # this is a clone instead of an install because it is just R source
     git clone https://github.com/bowers-illinois-edu/test_performance_sims.git
 
